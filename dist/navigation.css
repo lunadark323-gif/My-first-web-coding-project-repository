@@ -2,3 +2,5 @@
 
 /* Emphasize travel rules only; illustration explanation stays regular. */
 .route-rules-emphasis{display:block;font-weight:800;color:#173f53;font-size:1.08em;line-height:1.65;margin-bottom:.55rem;}
+
+#site-bottom{grid-template-columns:repeat(5,minmax(0,1fr))!important}

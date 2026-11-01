@@ -4,7 +4,7 @@
 
 Сайт: https://lunadark323-gif.github.io/My-first-web-coding-project-repository/
 
-Админка: https://lunadark323-gif.github.io/My-first-web-coding-project-repository/admin.html
+Кабинет управления доступен владельцу по отдельной ссылке и паролю.
 
 Бот: https://t.me/FaetonKMV_RentBot
 
