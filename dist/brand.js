@@ -1,0 +1,1 @@
+document.querySelectorAll('a.logo').forEach(a=>{a.innerHTML='<img src="assets/faeton-kmv-logo.svg" alt="Фаэтон КМВ — автопрокат на Кавказе" width="740" height="180">';a.setAttribute('aria-label','Фаэтон КМВ — на главную');});

@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+logs/
+КЛЮЧ*
+*администратора.txt
+data/
+exports/
+node_modules/
+__pycache__/
+.venv/
+*.db
+*.sqlite*
+.neon
+.env.local
