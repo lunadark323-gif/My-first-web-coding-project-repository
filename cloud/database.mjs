@@ -11,7 +11,7 @@ export function translate(sql){
 const query=(sql,args=[])=>scope.getStore().query(translate(sql),args);
 export const db={
  // Schema changes are versioned in schema.sql, applied explicitly before deployment.
- async exec(sql){if(/^CREATE TABLE/i.test(sql))return;return query(sql.replace('BEGIN IMMEDIATE','BEGIN'));},
+ async exec(sql){if(/^CREATE TABLE/i.test(sql))return;return query(sql.replace('BEGIN IMMEDIATE','BEGIN ISOLATION LEVEL SERIALIZABLE'));},
  prepare(sql){return {async get(...args){return (await query(sql,args)).rows[0];},async all(...args){return (await query(sql,args)).rows;},async run(...args){const r=await query(sql,args);return {changes:r.rowCount};}};},
 };
 export async function withConnection(task){const client=await pool.connect();try{return await scope.run(client,task);}finally{try{await client.query('ROLLBACK');}catch{}client.release();}}

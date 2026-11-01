@@ -15,6 +15,8 @@ function asynchronous(source,names=[]){
  walk(tree);for(const [at,text]of edits.sort((a,b)=>b[0]-a[0]))source=source.slice(0,at)+text+source.slice(at);return source;
 }
 let bot=await read('backend/bot-dialog.mjs');bot=asynchronous(bot,['save']);
+bot=bot.replace("if(!adminChat){await say(chat,'Уведомления менеджеру пока не настроены. Владелец должен заполнить ADMIN_CHAT_ID на сервере.');return true;}","await db.prepare('INSERT INTO booking_messages(booking_id,author,body) VALUES(?,?,?)').run(cs.booking,'client',text.slice(0,3000));if(!adminChat){await save(chat,{booking:cs.booking});await say(chat,'Сообщение принято. Менеджер увидит его в админке и ответит сюда.',[...menu,'✉ Написать менеджеру']);return true;}");
+bot=bot.replace("else if(s.step==='summary'", "else if(s.step==='summary'");
 bot=bot.replace("from './pricing.mjs'","from './pricing.mjs'");
 await write('cloud/generated/bot-dialog.mjs',bot);
 let pricing=await read('backend/pricing.mjs');pricing=pricing.replace("import {readFileSync} from 'node:fs';",'');pricing=pricing.replace(/export const catalog=JSON.parse\(readFileSync\(.*?\);/,`export const catalog=${await read('dist/catalog.json')};`);
@@ -35,12 +37,19 @@ server=server.replace("return send(200,{ok:true,expires_in:28800});","return sen
 // Bearer sessions also work when browsers block cross-site cookies.
 server=server.replace("const value=adminCookie(req);","const value=(req.headers.authorization||'').replace(/^Bearer /,'')||adminCookie(req);");
 server=server.replace("hash(adminCookie(req))","hash((req.headers.authorization||'').replace(/^Bearer /,'')||adminCookie(req))");
+server=server.replace("telegram_linked:!!r.chat,client:","telegram_linked:!!r.chat,demo_contract:!!r.chat,message_count:(await db.prepare('SELECT count(*)::int AS n FROM booking_messages WHERE booking_id=?').get(r.id)).n,client:");
+server=server.replace("if(req.method==='POST'&&u.pathname==='/admin/reply')", "if(req.method==='GET'&&u.pathname==='/admin/messages'){const id=u.searchParams.get('id');return send(200,await db.prepare('SELECT author,body,created_at FROM booking_messages WHERE booking_id=? ORDER BY id').all(id));}\nif(req.method==='POST'&&u.pathname==='/admin/reply')");
+server=server.replace("return send(200,{ok:true});}catch{return send(502,{error:'Telegram пока не доставил сообщение.","await db.prepare('INSERT INTO booking_messages(booking_id,author,body) VALUES(?,?,?)').run(id,'manager',text.trim());return send(200,{ok:true});}catch{return send(502,{error:'Telegram пока не доставил сообщение.");
+server=server.replace("if(!row?.encrypted||key.length!==32)return send(404,{error:'Нет данных клиента'});const q=JSON.parse(row.payload),c=decrypt(row.encrypted);", "if(!row?.chat)return send(404,{error:'Клиент ещё не открыл заявку в боте'});const q=JSON.parse(row.payload),c={name:'Учебный клиент',phone:'Telegram',birth_date:'не используется',passport:'не используется',issuer:'не используется',passport_date:'не используется',address:'не используется',license:'не используется',license_date:'не используется',license_expiry:'не используется'};");
+server=server.replace('ПРОЕКТ договора аренды ТС без экипажа','УЧЕБНЫЙ ПРОЕКТ договора аренды ТС без экипажа');
+server=server.replace("SELECT * FROM bookings WHERE id=? AND status='review'","SELECT * FROM bookings WHERE id=? AND status IN ('pending','review') AND chat IS NOT NULL");
+server=server.replace("(await db.exec('COMMIT'));return send(200,{ok:true});", "(await db.exec('COMMIT'));try{await telegram('sendMessage',{chat_id:row.chat,text:'Учебная заявка № '+id.slice(0,10)+' подтверждена менеджером. Это демонстрация, оплачивать аренду не нужно.'});}catch{}return send(200,{ok:true});");
 const insert=`
 if(u.pathname==='/telegram/webhook'&&req.method==='POST'){
  if(!env.TELEGRAM_WEBHOOK_SECRET||!safeEqual(req.headers['x-telegram-bot-api-secret-token'],env.TELEGRAM_WEBHOOK_SECRET))return send(401,{error:'Unauthorized'});
  const update=await body(req);if(!Number.isSafeInteger(update.update_id))return send(400,{error:'Invalid update'});
  await transaction(async()=>{const chat=String(update.message?.chat?.id||update.update_id);await db.prepare('SELECT pg_advisory_xact_lock(hashtextextended(?,0))').get(chat);const prior=await db.prepare('SELECT 1 FROM telegram_updates WHERE id=?').get(update.update_id);if(prior)return;
- const m=update.message;if(m?.chat?.type==='private'&&typeof m.text==='string'){if(m.text==='/id')await telegram('sendMessage',{chat_id:m.chat.id,text:'Ваш chat_id: '+m.chat.id});else if(m.text==='/privacy')await telegram('sendMessage',{chat_id:m.chat.id,text:'Учебная демонстрация. Настоящие документы и оплату не отправляйте.'});else await handleDialog(m);}
+ const m=update.message;if(m?.chat?.type==='private'&&typeof m.text==='string'){if(m.text==='/id')await telegram('sendMessage',{chat_id:m.chat.id,text:'Ваш chat_id: '+m.chat.id});else if(m.text==='/privacy')await telegram('sendMessage',{chat_id:m.chat.id,text:'Учебная демонстрация. Настоящие документы и оплату не отправляйте.'});else await handleDialog({...m,text:m.text==='/status'?'📋 Мои заявки':m.text});}
  await db.prepare('INSERT INTO telegram_updates(id) VALUES(?) ON CONFLICT DO NOTHING').run(update.update_id);});return send(200,{ok:true});
 }
 `;

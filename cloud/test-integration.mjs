@@ -14,7 +14,11 @@ try{
  assert.equal((await request('/telegram/webhook',{method:'POST',body:{update_id:1}})).status,401);
  await webhook('/start '+booking.token);assert.match(out.at(-1).text,/Ваша заявка принята/);await webhook('✅ Связаться в Telegram');assert.ok(out.some(p=>p.chat_id==='test-manager'));
  await webhook('✉ Написать менеджеру');await webhook('Учебный вопрос');assert.match(out.at(-1).text,/передано менеджеру/);
+ const {createBotDialog}=await import('./generated/bot-dialog.mjs'),{db,withConnection}=await import('./database.mjs');await withConnection(async()=>{const handle=await createBotDialog({db,adminChat:'',send:async(_,p)=>out.push(p)});await handle({chat:{id:chat},text:'✉ Написать менеджеру'});await handle({chat:{id:chat},text:'Вопрос без привязки менеджера'});});assert.match(out.at(-1).text,/Сообщение принято/);
+ r=await request('/admin/messages?id='+booking.token,{auth:session});assert.equal(r.status,200);assert.equal((await r.json()).length,2);
+ r=await request('/admin/contract/'+booking.token,{auth:session});assert.equal(r.status,200);const contract=await r.text();assert.equal((contract.match(/<section>/g)||[]).length,2);assert.match(contract,/УЧЕБНЫЙ/);
  r=await request('/admin/reply',{method:'POST',auth:session,body:{id:booking.token,text:'Учебный ответ'}});assert.equal(r.status,200);assert.ok(out.some(p=>p.text.includes('Учебный ответ')));
+ r=await request('/admin/confirm',{method:'POST',auth:session,body:{id:booking.token}});assert.equal(r.status,200,await r.text());assert.ok(out.some(p=>p.text.includes('подтверждена менеджером')));
  const before=out.length;await request('/telegram/webhook',{method:'POST',headers:{'x-telegram-bot-api-secret-token':process.env.TELEGRAM_WEBHOOK_SECRET},body:{update_id:updates.at(-1),message:{chat:{id:chat,type:'private'},text:'Не дублировать'}}});assert.equal(out.length,before);
  r=await request('/admin/report.xlsx',{auth:session});assert.equal(r.status,200);assert.equal(Buffer.from(await r.arrayBuffer()).subarray(0,2).toString(),'PK');
  assert.equal((await request('/api/customer/fake',{method:'POST',body:{}})).status,503);

@@ -9,3 +9,5 @@ CREATE TABLE IF NOT EXISTS admin_sessions(hash TEXT PRIMARY KEY,expires BIGINT N
 CREATE TABLE IF NOT EXISTS bot_sessions(chat TEXT PRIMARY KEY,payload TEXT NOT NULL,updated BIGINT NOT NULL);
 CREATE TABLE IF NOT EXISTS booking_contacts(booking_id TEXT PRIMARY KEY,contact TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS telegram_updates(id BIGINT PRIMARY KEY,processed_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE IF NOT EXISTS booking_messages(id BIGSERIAL PRIMARY KEY,booking_id TEXT NOT NULL REFERENCES bookings(id) ON DELETE CASCADE,author TEXT NOT NULL CHECK(author IN ('client','manager')),body TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE INDEX IF NOT EXISTS booking_messages_booking ON booking_messages(booking_id,id);
